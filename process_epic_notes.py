@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Process Epic clinic notes exported as tab-separated text files.
-Each file contains two lines: headers and values.
+Each file contains a header line followed by one or more data rows.
 Converts multiple files into a single CSV or JSON output.
 """
 
@@ -13,72 +13,81 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 
-def parse_note_file(file_path: Path) -> Dict[str, str]:
+def parse_note_file(file_path: Path) -> List[Dict[str, str]]:
     """
     Parse a single note file with tab-separated headers and values.
-    
+
     Args:
         file_path: Path to the note file
-        
+
     Returns:
-        Dictionary mapping column names to values
+        List of dictionaries, one per data row
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             lines = f.readlines()
-        
+
         if len(lines) < 2:
             print(f"Warning: {file_path.name} has fewer than 2 lines, skipping", file=sys.stderr)
-            return None
-        
-        # Parse headers and values
+            return []
+
+        # Parse headers
         headers = lines[0].strip().split('\t')
-        values = lines[1].strip().split('\t')
-        
-        # Handle mismatched lengths
-        if len(headers) != len(values):
-            print(f"Warning: {file_path.name} has {len(headers)} headers but {len(values)} values", 
-                  file=sys.stderr)
-            # Pad with empty strings if needed
-            if len(values) < len(headers):
-                values.extend([''] * (len(headers) - len(values)))
-            else:
-                values = values[:len(headers)]
-        
-        # Create dictionary
-        return dict(zip(headers, values))
-        
+
+        # Parse all data rows (lines 1 onwards)
+        records = []
+        for line_num, line in enumerate(lines[1:], start=2):
+            # Skip empty lines
+            if not line.strip():
+                continue
+
+            values = line.strip().split('\t')
+
+            # Handle mismatched lengths
+            if len(headers) != len(values):
+                print(f"Warning: {file_path.name} line {line_num} has {len(headers)} headers but {len(values)} values",
+                      file=sys.stderr)
+                # Pad with empty strings if needed
+                if len(values) < len(headers):
+                    values.extend([''] * (len(headers) - len(values)))
+                else:
+                    values = values[:len(headers)]
+
+            # Create dictionary for this row
+            records.append(dict(zip(headers, values)))
+
+        return records
+
     except Exception as e:
         print(f"Error processing {file_path.name}: {e}", file=sys.stderr)
-        return None
+        return []
 
 
 def process_directory(input_dir: Path, pattern: str = "*.txt") -> List[Dict[str, str]]:
     """
     Process all matching files in a directory.
-    
+
     Args:
         input_dir: Directory containing note files
         pattern: Glob pattern for matching files (default: *.txt)
-        
+
     Returns:
-        List of dictionaries, one per file
+        List of dictionaries, one per data row across all files
     """
     files = sorted(input_dir.glob(pattern))
-    
+
     if not files:
         print(f"Warning: No files matching '{pattern}' found in {input_dir}", file=sys.stderr)
         return []
-    
+
     print(f"Processing {len(files)} files...", file=sys.stderr)
-    
+
     records = []
     for file_path in files:
-        record = parse_note_file(file_path)
-        if record:
-            records.append(record)
-    
-    print(f"Successfully processed {len(records)} files", file=sys.stderr)
+        file_records = parse_note_file(file_path)
+        records.extend(file_records)
+
+    print(f"Successfully processed {len(records)} records from {len(files)} files", file=sys.stderr)
     return records
 
 

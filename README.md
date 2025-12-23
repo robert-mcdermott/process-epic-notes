@@ -4,14 +4,15 @@ This script converts Epic clinic notes exported as tab-separated text files into
 
 ## Input Format
 
-Each text file should contain exactly two lines:
+Each text file should contain:
 - **Line 1**: Tab-separated column headers
-- **Line 2**: Tab-separated values
+- **Line 2+**: Tab-separated values (one or more data rows)
 
 Example file content:
 ```
 MRN	date	NOTE_ID	Note	Source	rowNum
 12345	2024-01-15	N001	Patient presents with mild cough and fever.	Clinic A	1
+12345	2024-01-16	N002	Follow-up visit. Patient symptoms improved.	Clinic A	2
 ```
 
 ## Requirements
