@@ -124,6 +124,11 @@ def merge_pathology_records(records: List[Dict[str, str]]) -> List[Dict[str, str
     # Merge each group
     merged_records = []
     for key, group in grouped.items():
+        # Skip empty groups (defensive check)
+        if not group:
+            print(f"Warning: Empty group found for key {key}, skipping", file=sys.stderr)
+            continue
+
         # Sort by ConcatenationLine and ConcatenationSubLine
         def sort_key(record):
             try:
